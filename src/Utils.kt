@@ -30,3 +30,23 @@ fun <T> Iterable<T>.bufferUntil(stopPredicate: (T) -> Boolean): List<List<T>> {
 
     return lists
 }
+
+fun List<Int>.median(): Int = if (this.size % 2 == 1) {
+    val medianIndex = this.size / 2
+    this.sorted()[medianIndex]
+} else {
+    val lowerMedianIndex = this.size / 2 - 1
+    val upperMedianIndex = this.size / 2
+    val sorted = this.sorted()
+    (sorted[upperMedianIndex] + sorted[lowerMedianIndex]) / 2
+}
+
+fun List<Long>.median(): Long = if (this.size % 2 == 1) {
+    val medianIndex = this.size / 2
+    this.sorted()[medianIndex]
+} else {
+    val lowerMedianIndex = this.size / 2 - 1
+    val upperMedianIndex = this.size / 2
+    val sorted = this.sorted()
+    (sorted[upperMedianIndex] + sorted[lowerMedianIndex]) / 2
+}

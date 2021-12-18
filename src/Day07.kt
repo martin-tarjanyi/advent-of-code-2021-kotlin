@@ -26,16 +26,6 @@ fun main() {
     println(part2(input))
 }
 
-fun List<Int>.median(): Int = if (this.size % 2 == 1) {
-    val medianIndex = this.size / 2
-    this.sorted()[medianIndex]
-} else {
-    val lowerMedianIndex = this.size / 2 - 1
-    val upperMedianIndex = this.size / 2
-    val sorted = this.sorted()
-    (sorted[upperMedianIndex] + sorted[lowerMedianIndex]) / 2
-}
-
 fun exponentialFuelCost(num1: Int, num2: Int): Int {
     val distance = abs(num1 - num2)
     return ((distance + 1) / 2.0 * distance).toInt()
