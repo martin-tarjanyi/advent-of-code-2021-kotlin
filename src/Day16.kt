@@ -1,5 +1,3 @@
-const val literalTypeId = 4
-
 fun main() {
     fun part1(input: List<String>): Int {
         val inputQueue = input.single().toCharArray()
@@ -8,7 +6,7 @@ fun main() {
             .toCollection(ArrayDeque())
             .also { println(it) }
 
-        return parsePackage(inputQueue).also { println(it) }
+        return parsePackage(inputQueue).sumPacketVersions.also { println(it) }
     }
 
     fun part2(input: List<String>): Int {
@@ -38,42 +36,49 @@ fun <T> ArrayDeque<T>.removeFirst(n: Int): List<T> {
     return generateSequence { this.removeFirst() }.take(n).toList()
 }
 
-fun parsePackage(inputQueue: ArrayDeque<Char>): Int {
-    var packetVersions: Int = inputQueue.removeFirst(3).joinToString(separator = "").toInt(radix = 2)
+fun parsePackage(inputQueue: ArrayDeque<Char>): PackageParseResult {
+    val packetVersion: Int = inputQueue.removeFirst(3).joinToString(separator = "").toInt(radix = 2)
     val typeId: Int = inputQueue.removeFirst(3).joinToString(separator = "").toInt(radix = 2)
 
     when (typeId) {
-        literalTypeId -> {
+        4 -> {
             while (true) {
                 val group = inputQueue.removeFirst(5).joinToString(separator = "")
                 if (group[0] == '0') {
                     break
                 }
             }
+            return PackageParseResult(packetVersion, 0)
         }
-        else -> {
+        else -> { // operator
             val lengthTypeId = inputQueue.removeFirst()
             when (lengthTypeId) {
                 '0' -> {
                     val totalLengthInBits =
                         inputQueue.removeFirst(15).joinToString(separator = "").toInt(radix = 2)
                     val expectedSizeAfterProcessing = inputQueue.size - totalLengthInBits
-
-                    generateSequence { parsePackage(inputQueue) }
-                        .onEach { packetVersions += it }
-                        .takeWhile { inputQueue.size > expectedSizeAfterProcessing }
-                        .forEach {  }
+                    var packetVersions = packetVersion
+                    while (inputQueue.size > expectedSizeAfterProcessing) {
+                        val packageParseResult = parsePackage(inputQueue)
+                        packetVersions += packageParseResult.sumPacketVersions
+                    }
+                    return PackageParseResult(packetVersions, 0)
                 }
                 '1' -> {
                     val subPackets =
                         inputQueue.removeFirst(11).joinToString(separator = "").toInt(radix = 2)
 
-                    (1..subPackets).map { parsePackage(inputQueue) }.forEach { packetVersions += it }
+                    var packetVersions = packetVersion
+                    for (i in 1..subPackets) {
+                        val packageParseResult = parsePackage(inputQueue)
+                        packetVersions += packageParseResult.sumPacketVersions
+                    }
+                    return PackageParseResult(packetVersions, 0)
                 }
                 else -> error("Invalid length type ID.")
             }
         }
     }
-
-    return packetVersions
 }
+
+data class PackageParseResult(val sumPacketVersions: Int, val packetValue: Int)
