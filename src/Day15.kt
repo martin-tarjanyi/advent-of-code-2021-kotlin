@@ -1,5 +1,7 @@
+@file:OptIn(ExperimentalTime::class)
 
 import java.util.*
+import kotlin.time.ExperimentalTime
 
 fun main() {
     fun part1(input: List<String>): Int {
@@ -40,7 +42,7 @@ fun findShortestDistanceFromStartToEnd(risk: Map<CavernCoordinate, Int>): Int {
     val start = CavernCoordinate(0, 0)
     val end = risk.keys.maxWithOrNull(compareBy<CavernCoordinate> { it.row }.thenBy { it.column })!!
     val shortestPath: MutableMap<CavernCoordinate, CavernCoordinate> = mutableMapOf()
-    val queue = CavernPriorityQueue<CavernPointCost, CavernCoordinate>(compareBy { it.cost }, {it.coordinate})
+    val queue = CavernPriorityQueue<CavernPointCost, CavernCoordinate> { it.coordinate }
     risk.entries.forEach { (key, _) -> queue.add(CavernPointCost(key, Int.MAX_VALUE)) }
     queue.changePriority(queue[start], queue[start].copy(cost = 0))
 
@@ -107,15 +109,19 @@ data class CavernCoordinate(val row: Int, val column: Int) {
     }
 }
 
-data class CavernPointCost(val coordinate: CavernCoordinate, val cost: Int)
+data class CavernPointCost(val coordinate: CavernCoordinate, override val cost: Int): ScoredEntry
 
-class CavernPriorityQueue<T, R>(comparator: Comparator<T>, private val entryKey: (T) -> R) {
-    private val queue = PriorityQueue(comparator) // for quick min lookup
+interface ScoredEntry {
+    val cost: Int
+}
+
+class CavernPriorityQueue<T : ScoredEntry, R>(private val entryKey: (T) -> R) {
     private val set = mutableSetOf<R>() // for quick contains check
     private val map = mutableMapOf<R, T>() // for quick lookup
+    private val sortedMap = TreeMap<Int, MutableSet<T>>() // sorted cost to item mapping
 
     fun add(t: T) {
-        queue.add(t)
+        sortedMap.merge(t.cost, mutableSetOf(t)) { a, b -> a.addAll(b); a }
         set.add(entryKey(t))
         map[entryKey(t)] = t
     }
@@ -125,26 +131,28 @@ class CavernPriorityQueue<T, R>(comparator: Comparator<T>, private val entryKey:
     }
 
     fun min(): T {
-        val poll = queue.poll()
+        val (score, pollSet) = sortedMap.pollFirstEntry()
+        val poll = pollSet.first()
+        pollSet.remove(poll)
+        if (pollSet.isNotEmpty()) {
+            sortedMap[score] = pollSet
+        }
+
         set.remove(entryKey(poll))
         return poll
     }
 
     fun changePriority(original: T, new: T): Unit {
-        queue.remove(original)
-        queue.add(new)
+        sortedMap[original.cost]?.remove(original)
+        sortedMap.merge(new.cost, mutableSetOf(new)) { a, b -> a.union(b).toMutableSet() }
         map[entryKey(original)] = new
     }
 
     fun isNotEmpty(): Boolean {
-        return !queue.isEmpty()
+        return !sortedMap.isEmpty()
     }
 
     operator fun get(key: R): T {
         return map[key]!!
-    }
-
-    fun size(): Int {
-        return queue.size
     }
 }
